@@ -3,6 +3,17 @@
 面向中亚游客的本地生活向导 APP — 服务霍尔果斯、喀什等新疆口岸城市。
 支持 **中文 / English / Русский** 三语，地图找店、搜索商户、导航跳转、重点企业广告位。
 
+## 📥 下载安装
+
+最新稳定版：**v3.0.0**（高德 WebView 地图，无需 GMS，推荐）
+
+| 平台 | 下载 | 说明 |
+|------|------|------|
+| Android | [bianxiaoer-android-v3.apk](https://github.com/simonlu7997-spec/bianxiaoer/releases/download/v3.0.0/bianxiaoer-android-v3.apk) | 直接安装，无需 Google 服务 |
+| iOS | [bianxiaoer-v3.ipa](https://github.com/simonlu7997-spec/bianxiaoer/releases/download/v3.0.0/bianxiaoer-v3.ipa) | 需签名侧载安装 |
+
+👉 全部版本（含 v1/v2 存档）：[GitHub Releases](https://github.com/simonlu7997-spec/bianxiaoer/releases)
+
 ## 需求来源
 
 《边小二 手机APP建设构架》（2026-08-04 上传文档）核心要求：
@@ -64,25 +75,23 @@ npx expo run:ios        # 真机构建（侧载）
 
 ## 上线前待办
 
-1. **高德 Key**：`src/config/index.js` 填入 `AMAP_KEY`（[lbs.amap.com](https://lbs.amap.com) 申请 Web 服务 key）
-2. **后端对接**：实现后台管理系统 API（见下），填 `BACKEND_URL`
-3. **App 图标/启动图**：替换默认资源
-4. **Android 地图**：国内 Android 建议换 `react-native-amap3d` 原生方案（当前用瓦片方案兼容）
+1. **App 图标/启动图**：替换默认资源（Android 正式签名 keystore 待生成）
+2. **后端 API 生产化**：当前 APP 数据走后台管理系统（admin.pect-dapp.io）在线配置 + mock 回退
 
-## 后台管理系统设计（预留）
+## 后台管理系统（已上线 ✅）
 
-按文档"设计简单易于操作、预留接口、独立账号密码登录"：
+生产环境已部署运行，源码见本仓库 `admin/` 目录：
 
 | 模块 | 说明 |
 |------|------|
-| 管理员登录 | 独立账号/密码，`POST /api/admin/login` |
+| 管理员登录 | 独立账号/密码，`POST /api/admin/login`（bcrypt 哈希 + 登录限流防爆破） |
 | 商户管理 | 增删改查 + 三语名称/地址 + 分类 + 坐标 + 电话 + 评分 |
 | 广告管理 | 重点企业广告位：标题三语、跳转商户、排序、上下架 |
 | 图片资料 | `POST /api/upload` 上传商户/广告图片，返回 URL |
-| 用户管理 | 注册用户列表（预留收藏/反馈同步） |
+| 系统设置 | 高德 Key / mock 开关 / 城市中心点在线配置，APP 启动实时拉取 |
 
-建议实现为独立 Web 后台（如 Next.js/React + 轻量后端），数据接口契约已在
-`src/services/ApiClient.js` 的 `ENDPOINTS` 中定义，APP 侧可直接切换。
+- 技术栈：Express 4 + node:sqlite（零原生依赖）+ React 18 / antd 5
+- 在线地址：https://admin.pect-dapp.io
 
 ## 🗺️ 地图探索（2026-08-04 更新）
 
