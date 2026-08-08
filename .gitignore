@@ -1,0 +1,30 @@
+# 边小二 — 顶层 .gitignore
+
+# macOS
+.DS_Store
+*.pem
+
+# 依赖
+node_modules/
+
+# 构建产物 / 运行时数据
+admin/server/data/
+admin/server/uploads/
+admin/web/dist/
+app/dist/
+app/.expo/
+app/ios/build/
+app/ios/Pods/
+app/android/build/
+app/android/.gradle/
+app/android/app/build/
+app/android/local.properties
+app/android/.kotlin/
+
+# 发布包（体积大，不入库；需要时单独分发）
+release/
+*.apk
+*.ipa
+
+# 日志
+*.log

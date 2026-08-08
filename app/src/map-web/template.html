@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"/>
+<title>边小二地图</title>
+<style>
+/*__LEAFLET_CSS__*/
+html, body, #map { margin:0; padding:0; width:100%; height:100%; overflow:hidden; background:#e9eef5; }
+.leaflet-div-icon { background:transparent; border:none; }
+
+/* 图钉 — 与 iOS 原生样式一致 */
+.pin-wrap { display:flex; align-items:center; justify-content:center; }
+.pin {
+  width:20px; height:20px; border-radius:50%;
+  background:#2E6BE6; border:2.5px solid #fff;
+  box-shadow:0 2px 4px rgba(0,0,0,.25);
+  display:flex; align-items:center; justify-content:center;
+  box-sizing:border-box;
+}
+.pin-gold { background:#F5B301; }
+.pin-selected { width:30px; height:30px; border-width:3px; }
+.pin-dot { width:6px; height:6px; border-radius:50%; background:#fff; }
+.pin-selected .pin-dot { width:8px; height:8px; }
+
+/* 用户位置蓝点 */
+.user-dot {
+  width:14px; height:14px; border-radius:50%;
+  background:#2E6BE6; border:3px solid #fff;
+  box-shadow:0 0 0 3px rgba(46,107,230,.22);
+  box-sizing:border-box;
+}
+</style>
+</head>
+<body>
+<div id="map"></div>
+<script>
+/*__LEAFLET_JS__*/
+(function () {
+  'use strict';
+
+  // 高德栅格瓦片（与 iOS UrlTile 同源，国内可用，无需 Key / GMS）
+  var TILE_URL = 'https://webrd0{s}.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=7&x={x}&y={y}&z={z}';
+  var SUBDOMAINS = ['1', '2', '3', '4'];
+
+  var map = L.map('map', {
+    zoomControl: false,
+    attributionControl: false,
+    minZoom: 3,
+    maxZoom: 19,
+  });
+  L.tileLayer(TILE_URL, { subdomains: SUBDOMAINS, maxZoom: 19, tileSize: 256 }).addTo(map);
+
+  // ── RN ↔ WebView 桥 ──
+  function post(obj) {
+    if (window.ReactNativeWebView) {
+      window.ReactNativeWebView.postMessage(JSON.stringify(obj));
+    }
+  }
+
+  var markers = {};   // id -> L.Marker
+  var store = {};     // id -> { featured: bool }
+  var current = null; // 选中的 id
+  var userMarker = null;
+
+  function iconFor(id) {
+    var d = store[id] || { featured: false };
+    var sel = id === current;
+    var cls = 'pin' + (d.featured ? ' pin-gold' : '') + (sel ? ' pin-selected' : '');
+    var size = sel ? 30 : 20;
+    return L.divIcon({
+      className: '',
+      html: '<div class="pin-wrap"><div class="' + cls + '"><div class="pin-dot"></div></div></div>',
+      iconSize: [size, size],
+      iconAnchor: [size / 2, size / 2],
+    });
+  }
+
+  function setMerchants(list) {
+    var ids = {};
+    (list || []).forEach(function (m) {
+      if (m.lat == null || m.lng == null) return;
+      ids[m.id] = true;
+      store[m.id] = { featured: !!m.featured };
+      if (markers[m.id]) {
+        markers[m.id].setLatLng([m.lat, m.lng]);
+        markers[m.id].setIcon(iconFor(m.id));
+      } else {
+        var mk = L.marker([m.lat, m.lng], { icon: iconFor(m.id) }).addTo(map);
+        mk.on('click', function () { post({ type: 'markerPress', id: m.id }); });
+        markers[m.id] = mk;
+      }
+    });
+    Object.keys(markers).forEach(function (id) {
+      if (!ids[id]) { map.removeLayer(markers[id]); delete markers[id]; delete store[id]; }
+    });
+  }
+
+  function setSelected(id) {
+    current = id || null;
+    Object.keys(markers).forEach(function (k) { markers[k].setIcon(iconFor(k)); });
+  }
+
+  function setUserLocation(lat, lng) {
+    if (lat == null || lng == null) {
+      if (userMarker) { map.removeLayer(userMarker); userMarker = null; }
+      return;
+    }
+    if (userMarker) { userMarker.setLatLng([lat, lng]); }
+    else {
+      userMarker = L.marker([lat, lng], {
+        icon: L.divIcon({ className: '', html: '<div class="user-dot"></div>', iconSize: [20, 20], iconAnchor: [10, 10] }),
+        interactive: false,
+        zIndexOffset: 1000,
+      }).addTo(map);
+    }
+  }
+
+  function setCenter(lat, lng, zoom) {
+    map.flyTo([lat, lng], zoom || map.getZoom(), { duration: 0.6 });
+  }
+
+  // 点击空白处 → 取消选中
+  map.on('click', function () { post({ type: 'mapPress' }); });
+
+  // RN 注入入口
+  window.__bridge = {
+    setMerchants: setMerchants,
+    setSelected: setSelected,
+    setUserLocation: setUserLocation,
+    setCenter: setCenter,
+  };
+
+  map.setView([44.2244, 80.4118], 13);
+  post({ type: 'ready' });
+
+  // 浏览器调试模式：?demo=1 时渲染演示数据（无 ReactNativeWebView 环境）
+  if (location.search.indexOf('demo') >= 0) {
+    setCenter(44.2244, 80.4118, 13);
+    setMerchants([
+      { id: 'm1', lat: 44.2244, lng: 80.4118, featured: true },
+      { id: 'm2', lat: 44.2300, lng: 80.4200, featured: false },
+      { id: 'm3', lat: 44.2180, lng: 80.4050, featured: false },
+    ]);
+    setSelected('m1');
+    setUserLocation(44.2260, 80.4140);
+  }
+})();
+</script>
+</body>
+</html>
