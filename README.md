@@ -9,6 +9,15 @@
 - **Android**：v4 APK 构建完成（`app-v2/android`，高德 WebView 地图方案）
 - 代码目录：**`app-v2/`**（新版，Expo Router 结构）—— 旧版 v1 代码已移除，历史版本见 Git 提交记录与 [GitHub Releases](https://github.com/simonlu7997-spec/bianxiaoer/releases)（v3.0.0 为 v1 代码构建的安装包）
 
+## 📥 下载安装（v2.0.0）
+
+| 平台 | 下载 | 说明 |
+|------|------|------|
+| Android | [bianxiaoer-android-v2.0.0.apk](https://github.com/simonlu7997-spec/bianxiaoer/releases/download/v2.0.0/bianxiaoer-android-v4.apk) | 直接安装，无需 Google 服务 |
+| iOS | [bianxiaoer-v2.0.0.ipa](https://github.com/simonlu7997-spec/bianxiaoer/releases/download/v2.0.0/bianxiaoer-v2.0.0.ipa) | 需签名侧载安装 |
+
+👉 全部版本：[GitHub Releases](https://github.com/simonlu7997-spec/bianxiaoer/releases)
+
 ## 核心功能
 
 - **三语界面**：中文 / 英文 / 俄文，可持久化切换
