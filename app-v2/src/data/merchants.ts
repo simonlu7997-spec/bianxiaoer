@@ -1,0 +1,178 @@
+// Mock 商户数据（开发/演示用；上线后由后台管理系统下发）
+// name: 三语名称；city: 霍尔果斯 / 喀什；category: 对应 categories.ts 的 id
+export interface LocalizedText {
+  zh: string;
+  en: string;
+  ru: string;
+}
+
+export interface Merchant {
+  id: string;
+  name: LocalizedText;
+  category: string;
+  city: string;
+  address: LocalizedText;
+  phone: string;
+  rating: number;
+  lat: number;
+  lng: number;
+  featured: boolean;
+  desc: LocalizedText;
+  poi?: boolean;
+}
+
+export default [
+  {
+    id: "m1",
+    name: { zh: "金亿国际商贸城", en: "Jinyi International Mall", ru: "ТЦ Цзиньи" },
+    category: "shopping",
+    city: "霍尔果斯",
+    address: { zh: "霍尔果斯市亚欧北路", en: "YaOu North Rd, Khorgos", ru: "ул. Яоу Север, Хоргос" },
+    phone: "0999-8790001",
+    rating: 4.7,
+    lat: 44.2244,
+    lng: 80.4118,
+    featured: true,
+    desc: {
+      zh: "中亚最大的跨境商品采购中心",
+      en: "The largest cross-border goods center in Central Asia",
+      ru: "Крупнейший центр трансграничных товаров",
+    },
+  },
+  {
+    id: "m2",
+    name: { zh: "霍尔果斯国际客运站美食城", en: "Khorgos Bus Station Food Court", ru: "Фуд-корт автовокзала" },
+    category: "food",
+    city: "霍尔果斯",
+    address: { zh: "霍尔果斯市友谊路客运站内", en: "Youyi Rd Bus Station, Khorgos", ru: "Автовокзал, ул. Юи" },
+    phone: "0999-8790002",
+    rating: 4.5,
+    lat: 44.2191,
+    lng: 80.4202,
+    featured: true,
+    desc: {
+      zh: "汇集抓饭、拉条子、俄餐与哈萨克风味",
+      en: "Pilaf, laghman, Russian & Kazakh cuisine",
+      ru: "Плов, лагман, русская и казахская кухня",
+    },
+  },
+  {
+    id: "m3",
+    name: { zh: "中哈国际物流园", en: "China-Kazakhstan Logistics Park", ru: "Китайско-казахстанский логистический парк" },
+    category: "logistics",
+    city: "霍尔果斯",
+    address: { zh: "霍尔果斯市工业园区", en: "Industrial Park, Khorgos", ru: "Промзона, Хоргос" },
+    phone: "0999-8790003",
+    rating: 4.8,
+    lat: 44.2301,
+    lng: 80.3985,
+    featured: true,
+    desc: {
+      zh: "口岸货运、报关、仓储一站式服务",
+      en: "Freight, customs & warehousing one-stop",
+      ru: "Грузоперевозки, таможня, склады",
+    },
+  },
+  {
+    id: "m4",
+    name: { zh: "喀什古城美食街", en: "Kashgar Old Town Food Street", ru: "Улица еды старого Кашгара" },
+    category: "food",
+    city: "喀什",
+    address: { zh: "喀什市吾斯塘博依路", en: "Ustanboyi Rd, Kashgar", ru: "ул. Устанбойи, Кашгар" },
+    phone: "0998-2300001",
+    rating: 4.9,
+    lat: 39.4685,
+    lng: 75.9846,
+    featured: true,
+    desc: {
+      zh: "烤鸽子、缸子肉、抓饭一应俱全",
+      en: "Roast pigeon, pot meat, pilaf",
+      ru: "Жареный голубь, плов и др.",
+    },
+  },
+  {
+    id: "m5",
+    name: { zh: "喀什汽车维修中心", en: "Kashgar Auto Repair Center", ru: "Автосервис Кашгара" },
+    category: "autorepair",
+    city: "喀什",
+    address: { zh: "喀什市西域大道188号", en: "188 Xiyu Ave, Kashgar", ru: "просп. Сиюй 188, Кашгар" },
+    phone: "0998-2300002",
+    rating: 4.3,
+    lat: 39.4621,
+    lng: 75.9922,
+    featured: false,
+    desc: {
+      zh: "中俄双语技师，支持跨境车辆维修",
+      en: "Bilingual mechanics, cross-border vehicles",
+      ru: "Мастера, говорящие по-русски",
+    },
+  },
+  {
+    id: "m6",
+    name: { zh: "丝路美容养生会所", en: "Silk Road Beauty & Spa", ru: "Салон красоты «Шёлковый путь»" },
+    category: "beauty",
+    city: "霍尔果斯",
+    address: { zh: "霍尔果斯市北京路12号", en: "12 Beijing Rd, Khorgos", ru: "ул. Пекин 12, Хоргос" },
+    phone: "0999-8790004",
+    rating: 4.6,
+    lat: 44.2168,
+    lng: 80.4155,
+    featured: false,
+    desc: {
+      zh: "美发、美甲、SPA，俄语服务",
+      en: "Hair, nails, spa. Russian spoken",
+      ru: "Парикмахер, маникюр, SPA",
+    },
+  },
+  {
+    id: "m7",
+    name: { zh: "中亚风情娱乐城", en: "Central Asia Entertainment Center", ru: "Развлекательный центр" },
+    category: "leisure",
+    city: "霍尔果斯",
+    address: { zh: "霍尔果斯市中哈合作中心", en: "Khorgos ICBC, Khorgos", ru: "МЦПС Хоргос" },
+    phone: "0999-8790005",
+    rating: 4.4,
+    lat: 44.2331,
+    lng: 80.4309,
+    featured: false,
+    desc: {
+      zh: "歌舞演艺、棋牌休闲、俄式酒吧",
+      en: "Shows, games, Russian bar",
+      ru: "Шоу, игры, русский бар",
+    },
+  },
+  {
+    id: "m8",
+    name: { zh: "喀什跨境物流口岸仓", en: "Kashgar Cross-border Port Warehouse", ru: "Приграничный склад Кашгара" },
+    category: "logistics",
+    city: "喀什",
+    address: { zh: "喀什市红山口口岸物流区", en: "Honshankou Port Logistics Zone, Kashgar", ru: "Зона логистики порта Хуншанькоу" },
+    phone: "0998-2300003",
+    rating: 4.5,
+    lat: 39.4732,
+    lng: 75.9788,
+    featured: false,
+    desc: {
+      zh: "中亚五国专线物流、集货拼车",
+      en: "CA-5 dedicated logistics lines",
+      ru: "Логистика в 5 стран ЦА",
+    },
+  },
+  {
+    id: "m9",
+    name: { zh: "友好超市（国际店）", en: "Youhao Supermarket (Intl)", ru: "Супермаркет Юхао" },
+    category: "shopping",
+    city: "喀什",
+    address: { zh: "喀什市解放北路66号", en: "66 Jiefang North Rd, Kashgar", ru: "ул. Цзефан Север 66" },
+    phone: "0998-2300004",
+    rating: 4.4,
+    lat: 39.4703,
+    lng: 75.9811,
+    featured: false,
+    desc: {
+      zh: "进口食品、中亚日用品一站购齐",
+      en: "Imported foods & daily goods",
+      ru: "Импортные продукты и товары",
+    },
+  },
+] as Merchant[];
