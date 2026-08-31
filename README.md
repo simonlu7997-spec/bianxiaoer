@@ -3,6 +3,15 @@
 面向中亚游客的本地生活向导 APP — 服务霍尔果斯、喀什等新疆口岸城市。
 支持 **中文 / English / Русский** 三语，地图找店、搜索商户、导航跳转、重点企业广告位。
 
+## 🌐 网页版（2026-08-31 上线 ✅）
+
+- **网址**: https://bianxiaoer.pect-dapp.io （手机/桌面浏览器均可，移动端优先布局）
+- **实现**: 同一套 app-v2 代码 `npx expo export --platform web`（react-native-web）
+- **地图**: Leaflet + 高德栅格瓦片（与 Android 版同源，无需 Key/GMS）
+- **数据**: 直连后台 https://admin.pect-dapp.io（CORS 已开），离线兜底 mock
+- **部署**: 本地静态服务器 :3201（`web-server/server.js`，零依赖，launchd `com.pect.bianxiaoer-web` 常驻）→ Cloudflare Tunnel → 公网
+- **重新部署**: `cd app-v2 && npx expo export --platform web`（产物 dist/，服务器即时生效，无需重启）
+
 ## 当前版本：v2.0.0 ✅
 
 - **iOS**：真机（iPhone 16 / iOS 26.6）安装运行验证通过；模拟器（iPhone 17 Pro / iOS 26.5）验证通过
