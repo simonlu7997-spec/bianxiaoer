@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useEffect, useState, useMemo } from "react";
 import * as Location from "expo-location";
+import { Platform } from "react-native";
 import config from "@/src/config";
 
 interface UserLocationValue {
@@ -28,8 +29,25 @@ export function UserLocationProvider({ children }: { children: React.ReactNode }
           setLoading(false);
           return;
         }
-        const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
-        setLocation({ latitude: pos.coords.latitude, longitude: pos.coords.longitude });
+        // Huawei (no GMS): 高德定位可能失败，降级为 IP 定位或默认中心
+        let pos: Location.LocationObject | null = null;
+        if (Platform.OS === "android") {
+          try {
+            pos = await Location.getCurrentPositionAsync({
+              accuracy: Location.Accuracy.Balanced,
+              timeInterval: 10000,
+              distanceInterval: 10,
+            });
+          } catch (gmsError) {
+            // GMS location failed on Huawei — fall through to default
+            console.warn("[Location] GMS定位失败（可能为华为无GMS设备），使用默认中心", gmsError);
+          }
+        } else {
+          pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+        }
+        if (pos?.coords) {
+          setLocation({ latitude: pos.coords.latitude, longitude: pos.coords.longitude });
+        }
       } catch (e) {
         setError(e instanceof Error ? e.message : String(e));
       } finally {

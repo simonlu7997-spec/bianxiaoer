@@ -16,6 +16,7 @@ const env = {
 const config: ExpoConfig & {
   android: { edgeToEdgeEnabled?: boolean; predictiveBackGestureEnabled?: boolean };
   newArchEnabled?: boolean;
+  expo?: { autolinking?: { exclude?: string[] } };
 } = {
   name: env.appName,
   slug: env.appSlug,
@@ -117,6 +118,15 @@ const config: ExpoConfig & {
   experiments: {
     typedRoutes: true,
     reactCompiler: true,
+  },
+  // Android 排除 react-native-maps（依赖 Google Play Services Maps，华为无 GMS 会崩溃）
+  // iOS 仍正常使用 react-native-maps + 高德瓦片
+  expo: {
+    autolinking: {
+      exclude: [
+        "react-native-maps",
+      ],
+    },
   },
 };
 

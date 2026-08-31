@@ -1,6 +1,5 @@
 import React, { forwardRef, useEffect, useImperativeHandle, useRef } from "react";
 import { Platform, StyleSheet, View } from "react-native";
-import MapView, { Marker, UrlTile, PROVIDER_DEFAULT } from "react-native-maps";
 import config from "@/src/config";
 import colors from "@/src/theme/colors";
 import AmapWebMap, { type MapHandle } from "./AmapWebMap";
@@ -9,9 +8,9 @@ import type { Merchant } from "@/src/data/merchants";
 export type { MapHandle };
 
 // ─────────────────────────────────────────────────────────────
-// 地图组件 — 平台分流（v1 保留功能）：
+// 地图组件 — 平台分流（华为手机兼容版）：
 //   iOS     → react-native-maps + 高德瓦片 UrlTile（原生体验）
-//   Android → AmapWebMap（WebView + Leaflet + 高德瓦片，无 GMS 依赖）
+//   Android → AmapWebMap（WebView + Leaflet + 高德瓦片，零 GMS 依赖）
 // 两者 props / ref 接口一致：
 //   - center：城市中心点（切换城市时动画平移）
 //   - selectedId：选中的商户 id（金色放大图钉）
@@ -27,12 +26,21 @@ interface MerchantMapProps {
   userLocation?: { latitude: number; longitude: number } | null;
 }
 
-// iOS 原生地图（react-native-maps + 高德瓦片，中国区可用，无 Google 数据依赖）
+// iOS 原生地图（react-native-maps + 高德瓦片，中国区可用）
+// ⚠️ react-native-maps 的 Android 实现依赖 Google Play Services Maps
+//    → 华为/国行无 GMS 手机会在 native 层 UnsatisfiedLinkError 崩溃
+//    → 因此 iOS 才用 react-native-maps，Android 一律走 WebView
 const IosMerchantMap = forwardRef<MapHandle, MerchantMapProps>(function IosMerchantMap(
   { merchants, onMarkerPress, selectedId, center, userLocation },
   ref
 ) {
-  const mapRef = useRef<MapView>(null);
+  // 动态 import，避免 Android 构建时链接 GMS native libs
+  const MapView = require("react-native-maps").default;
+  const Marker = require("react-native-maps").Marker;
+  const UrlTile = require("react-native-maps").UrlTile;
+  const PROVIDER_DEFAULT = require("react-native-maps").PROVIDER_DEFAULT;
+
+  const mapRef = useRef<InstanceType<typeof MapView>>(null);
   const initial = center || config.DEFAULT_CENTER;
 
   useEffect(() => {
@@ -101,7 +109,7 @@ const IosMerchantMap = forwardRef<MapHandle, MerchantMapProps>(function IosMerch
   );
 });
 
-// 平台分流
+// 平台分流 — Android 一律走 WebView，零 GMS 依赖
 const MerchantMap = forwardRef<MapHandle, MerchantMapProps>(function MerchantMap(props, ref) {
   if (Platform.OS === "android") {
     return <AmapWebMap ref={ref} {...props} />;
