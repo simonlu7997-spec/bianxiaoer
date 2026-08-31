@@ -3,6 +3,7 @@ import { Platform, StyleSheet, View } from "react-native";
 import config from "@/src/config";
 import colors from "@/src/theme/colors";
 import AmapWebMap, { type MapHandle } from "./AmapWebMap";
+import WebLeafletMap from "./WebLeafletMap";
 import type { Merchant } from "@/src/data/merchants";
 
 export type { MapHandle };
@@ -109,8 +110,11 @@ const IosMerchantMap = forwardRef<MapHandle, MerchantMapProps>(function IosMerch
   );
 });
 
-// 平台分流 — Android 一律走 WebView，零 GMS 依赖
+// 平台分流 — Web 走 Leaflet（高德瓦片）；Android 一律走 WebView（零 GMS）；iOS 用 react-native-maps
 const MerchantMap = forwardRef<MapHandle, MerchantMapProps>(function MerchantMap(props, ref) {
+  if (Platform.OS === "web") {
+    return <WebLeafletMap ref={ref} {...props} />;
+  }
   if (Platform.OS === "android") {
     return <AmapWebMap ref={ref} {...props} />;
   }

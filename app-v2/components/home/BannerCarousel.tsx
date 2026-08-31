@@ -62,7 +62,7 @@ export function BannerCarousel({ banners, autoPlayInterval = 3000 }: BannerCarou
       onPress={item.onPress}
     >
       <Image
-        source={typeof item.image === "number" ? item.image : { uri: item.image }}
+        source={typeof item.image === "string" ? { uri: item.image } : item.image}
         style={styles.bannerImage}
         contentFit="cover"
         transition={300}
