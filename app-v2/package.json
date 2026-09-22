@@ -104,5 +104,10 @@
         ]
       }
     }
+  },
+  "pnpm": {
+    "patchedDependencies": {
+      "expo-modules-jsi@56.0.12": "patches/expo-modules-jsi@56.0.12.patch"
+    }
   }
 }
