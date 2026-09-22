@@ -15,6 +15,7 @@ const CAT_COLORS: Record<string, string> = {
   beauty: "#EC4899",
   leisure: "#8B5CF6",
   logistics: "#10B981",
+  hotel: "#0EA5E9",
 };
 
 const catEmoji = (category: string) =>

@@ -25,6 +25,7 @@ export const translations = {
       beauty: "美容美发",
       leisure: "休闲娱乐",
       logistics: "跨境物流",
+      hotel: "酒店",
     },
     search: {
       title: "搜索",
@@ -112,6 +113,7 @@ export const translations = {
       beauty: "Beauty Salon",
       leisure: "Leisure",
       logistics: "Logistics",
+      hotel: "Hotels",
     },
     search: {
       title: "Search",
@@ -199,6 +201,7 @@ export const translations = {
       beauty: "Салон красоты",
       leisure: "Развлечения",
       logistics: "Логистика",
+      hotel: "Отели",
     },
     search: {
       title: "Поиск",

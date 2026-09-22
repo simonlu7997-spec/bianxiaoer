@@ -19,7 +19,7 @@ interface ServiceItem {
 
 const SERVICE_ITEMS: ServiceItem[] = [
   {
-    key: "accommodation",
+    key: "hotel",
     icon: "🏨",
     iconName: "bed.double.fill",
     color: "#1A6FB5",

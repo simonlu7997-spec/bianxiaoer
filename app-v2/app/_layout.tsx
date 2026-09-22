@@ -12,6 +12,7 @@ import { I18nProvider } from "@/lib/i18n";
 import { CartProvider } from "@/lib/cart-context";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { createTRPCClient, trpc } from "@/lib/trpc";
+import { ensureRemoteConfig } from "@/src/services/MapService";
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
@@ -30,6 +31,8 @@ function RootNavigator() {
 
   useEffect(() => {
     SplashScreen.hideAsync();
+    // 启动时拉取后台在线配置（高德 Key / mock 开关 / 城市），失败自动回退本地配置
+    void ensureRemoteConfig();
   }, []);
 
   return (

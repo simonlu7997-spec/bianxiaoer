@@ -12,4 +12,5 @@ export default [
   { id: "beauty", emoji: "💇", key: "beauty" },
   { id: "leisure", emoji: "🎮", key: "leisure" },
   { id: "logistics", emoji: "📦", key: "logistics" },
+  { id: "hotel", emoji: "🏨", key: "hotel" },
 ] as Category[];

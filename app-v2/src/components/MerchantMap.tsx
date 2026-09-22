@@ -3,8 +3,13 @@ import { Platform, StyleSheet, View } from "react-native";
 import config from "@/src/config";
 import colors from "@/src/theme/colors";
 import AmapWebMap, { type MapHandle } from "./AmapWebMap";
-import WebLeafletMap from "./WebLeafletMap";
 import type { Merchant } from "@/src/data/merchants";
+
+// Web 版地图（Leaflet）只在 web 平台需要：leaflet 在模块加载时就会访问
+// `document`，静态 import 会让 iOS 一进地图页就崩（Property 'document' doesn't exist），
+// 所以改为仅在 web 平台惰性 require。
+const WebLeafletMap: React.ComponentType<any> | null =
+  Platform.OS === "web" ? require("./WebLeafletMap").default : null;
 
 export type { MapHandle };
 
@@ -113,7 +118,7 @@ const IosMerchantMap = forwardRef<MapHandle, MerchantMapProps>(function IosMerch
 // 平台分流 — Web 走 Leaflet（高德瓦片）；Android 一律走 WebView（零 GMS）；iOS 用 react-native-maps
 const MerchantMap = forwardRef<MapHandle, MerchantMapProps>(function MerchantMap(props, ref) {
   if (Platform.OS === "web") {
-    return <WebLeafletMap ref={ref} {...props} />;
+    return WebLeafletMap ? <WebLeafletMap ref={ref} {...props} /> : null;
   }
   if (Platform.OS === "android") {
     return <AmapWebMap ref={ref} {...props} />;

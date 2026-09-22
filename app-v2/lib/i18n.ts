@@ -37,6 +37,7 @@ export const translations = {
       entertainment: "休闲娱乐",
       logistics: "跨境物流",
       trade: "国际贸易",
+      hotel: "酒店",
     },
 
     // 首页区块
@@ -225,6 +226,7 @@ export const translations = {
       entertainment: "Досуг",
       logistics: "Логистика",
       trade: "Торговля",
+      hotel: "Отели",
     },
 
     // 首页区块
@@ -413,6 +415,7 @@ export const translations = {
       entertainment: "Fun",
       logistics: "Logistics",
       trade: "Trade",
+      hotel: "Hotels",
     },
 
     // 首页区块

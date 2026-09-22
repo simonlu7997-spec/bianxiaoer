@@ -19,7 +19,8 @@ function localized(value: Record<"zh" | "ru" | "en", string>, language: "zh" | "
 
 export default function MerchantDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const merchantId = Number(id);
+  // 商户 id 统一为后台字符串 id（如 "m1790064991250"）；本地 mock 为 "m1"…"m9"
+  const merchantId = String(Array.isArray(id) ? id[0] : id ?? "");
   const { t, language } = useI18n();
   const colors = useColors();
   const insets = useSafeAreaInsets();
@@ -29,7 +30,7 @@ export default function MerchantDetailScreen() {
   const { isAuthenticated } = useAuth();
   const favoritesQuery = trpc.user.favorites.list.useQuery(undefined, { enabled: isAuthenticated });
   const toggleFavorite = trpc.user.favorites.toggle.useMutation({ onSuccess: () => void favoritesQuery.refetch() });
-  const query = trpc.catalog.merchantById.useQuery({ id: Number.isInteger(merchantId) && merchantId > 0 ? merchantId : 0 }, { enabled: Number.isInteger(merchantId) && merchantId > 0 });
+  const query = trpc.catalog.merchantById.useQuery({ id: merchantId }, { enabled: merchantId.length > 0 });
   const merchant = query.data;
   const isFavorited = merchant ? Boolean(favoritesQuery.data?.some((favorite) => favorite.id === merchant.id)) : false;
 

@@ -15,7 +15,7 @@ import type { ReactNode } from "react";
 import React from "react";
 
 import localMerchants, { type Merchant as LocalMerchant } from "@/src/data/merchants";
-import { fetchMerchants, fetchAds, searchPlaces } from "@/src/services/MapService";
+import { fetchMerchants, fetchMerchantById, ensureRemoteConfig } from "@/src/services/MapService";
 import type { Ad } from "@/src/data/ads";
 import type {
   HomeFeed,
@@ -31,7 +31,7 @@ import type {
 // 本地数据（mock）
 // ─────────────────────────────────────────────────────────────
 
-// 分类映射：本地 id → GitHub ServiceCategory
+// 分类映射：后台/本地分类 id → GitHub ServiceCategory
 const CATEGORY_MAP: Record<string, ServiceCategory> = {
   food: "dining",
   shopping: "shopping",
@@ -39,32 +39,155 @@ const CATEGORY_MAP: Record<string, ServiceCategory> = {
   beauty: "beauty",
   leisure: "entertainment",
   logistics: "logistics",
+  hotel: "hotel",
+};
+
+// ServiceCategory → 后台/本地分类 id（反向映射，数据层过滤用）
+const SERVICE_TO_LOCAL: Partial<Record<ServiceCategory, string>> = {
+  dining: "food",
+  shopping: "shopping",
+  carRepair: "autorepair",
+  beauty: "beauty",
+  entertainment: "leisure",
+  logistics: "logistics",
+  hotel: "hotel",
+};
+
+// 分类同义词（搜索页关键词命中分类用，如搜"酒店"能命中 hotel 分类）
+const CATEGORY_SEARCH_WORDS: Record<string, string[]> = {
+  food: ["餐饮", "美食", "餐厅", "food", "ресторан"],
+  shopping: ["商场", "超市", "购物", "shopping", "магазин"],
+  autorepair: ["汽修", "汽车维修", "car repair", "автосервис"],
+  beauty: ["美容", "美发", "beauty", "салон"],
+  leisure: ["休闲", "娱乐", "leisure", "развлечен"],
+  logistics: ["物流", "货运", "logistics", "логистика"],
+  hotel: ["酒店", "住宿", "宾馆", "民宿", "旅馆", "hotel", "отель", "гостиниц"],
 };
 
 const emojiFor = (cat: string) =>
-  ({ food: "🍜", shopping: "🛒", autorepair: "🔧", beauty: "💇", leisure: "🎮", logistics: "📦" }[cat] || "📍");
+  ({ food: "🍜", shopping: "🛒", autorepair: "🔧", beauty: "💇", leisure: "🎮", logistics: "📦", hotel: "🏨" }[cat] || "📍");
 
-function toSummary(m: LocalMerchant, id: number): MerchantSummary {
+// 分类参数（可能是 ServiceCategory，也可能是后台本地 id）→ 后台本地 id；all/未知 → undefined
+function toLocalCategory(category?: string): string | undefined {
+  if (!category || category === "all") return undefined;
+  if (SERVICE_TO_LOCAL[category as ServiceCategory]) return SERVICE_TO_LOCAL[category as ServiceCategory];
+  return CATEGORY_MAP[category] ? category : undefined;
+}
+
+const haversineKm = (lat1: number, lng1: number, lat2: number, lng2: number) => {
+  const toRad = (deg: number) => (deg * Math.PI) / 180;
+  const dLat = toRad(lat2 - lat1);
+  const dLng = toRad(lng2 - lng1);
+  const a = Math.sin(dLat / 2) ** 2 + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) ** 2;
+  return 6371 * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+};
+
+const matchesKeyword = (m: LocalMerchant, kw: string) =>
+  [
+    m.name?.zh, m.name?.en, m.name?.ru,
+    m.address?.zh, m.address?.en, m.address?.ru,
+    m.desc?.zh, m.desc?.en, m.desc?.ru,
+    m.city, m.category,
+    ...(CATEGORY_SEARCH_WORDS[m.category] ?? []),
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase()
+    .includes(kw);
+
+// 本地 mock / 后台商户 → MerchantSummary：id 统一用商户真实字符串 id（m1… / m1790064991250）
+function toSummary(m: LocalMerchant, location?: { latitude: number; longitude: number }): MerchantSummary {
+  const lat = Number(m.lat);
+  const lng = Number(m.lng);
+  const hasGeo = Number.isFinite(lat) && Number.isFinite(lng);
   return {
-    id,
+    id: m.id,
     slug: m.id,
     category: CATEGORY_MAP[m.category] ?? "shopping",
     name: m.name,
     shortDescription: m.desc,
-    coverImageUrl: null,
+    coverImageUrl: m.image ?? null,
     rating: m.rating,
     reviewCount: 0,
-    distanceKm: null,
-    isOpen: true,
+    distanceKm: location && hasGeo ? haversineKm(location.latitude, location.longitude, lat, lng) : null,
+    isOpen: m.status !== 0,
     tags: [m.category],
   };
 }
 
-// 本地商户 → MerchantSummary（id 用索引数字，slug 保留 m1/m2...）
-const LOCAL_SUMMARIES: MerchantSummary[] = localMerchants.map((m, i) => toSummary(m, i + 1));
+// 本地商户 → MerchantSummary（id 用 mock 的 m1/m2… 字符串 id）
+const LOCAL_SUMMARIES: MerchantSummary[] = localMerchants.map((m) => toSummary(m));
 
-function findLocal(id: number): LocalMerchant | undefined {
-  return localMerchants.find((m) => LOCAL_SUMMARIES.find((s) => s.id === id)?.slug === m.id);
+function findLocal(id: string): LocalMerchant | undefined {
+  return localMerchants.find((m) => m.id === id);
+}
+
+// 商户详情：后台优先（GET /api/merchants/:id），本地 mock 兜底；
+// 兼容早期收藏里存的纯数字 id（"1" → "m1"）
+async function resolveMerchant(id: string): Promise<LocalMerchant | null> {
+  if (!id) return null;
+  await ensureRemoteConfig();
+  try {
+    const remote = await fetchMerchantById(id);
+    if (remote) return remote;
+  } catch {
+    /* 后台不可达 → 走本地 mock */
+  }
+  const legacy = /^\d+$/.test(id) ? `m${id}` : null;
+  return findLocal(id) ?? (legacy ? findLocal(legacy) ?? null : null);
+}
+
+// 商户详情视图（菜单/评论为本地占位，后台暂未提供）
+function toDetail(local: LocalMerchant): MerchantDetail {
+  return {
+    ...toSummary(local),
+    description: local.desc,
+    address: local.address?.zh || local.address?.en || null,
+    phone: local.phone || null,
+    businessHours: "10:00 - 22:00",
+    latitude: local.lat,
+    longitude: local.lng,
+    menuCategories: [
+      {
+        id: 1,
+        name: { zh: "精选", en: "Featured", ru: "Избранное" },
+        items: [
+          {
+            id: 1,
+            name: local.name,
+            description: local.desc,
+            imageUrl: null,
+            priceCents: 5000,
+            unit: { zh: "份", en: "unit", ru: "шт." },
+          },
+        ],
+      },
+    ],
+    reviews: [
+      {
+        id: 1,
+        userDisplayName: "旅行者",
+        rating: local.rating,
+        content: local.desc?.zh ?? "",
+        createdAt: new Date().toISOString(),
+      },
+    ],
+  };
+}
+
+// 「附近」区块：有定位时按距离升序，否则按评分降序，各取 10 条
+function nearbyList(list: LocalMerchant[], location?: { latitude: number; longitude: number }): LocalMerchant[] {
+  if (location) {
+    return list
+      .filter((m) => Number.isFinite(Number(m.lat)) && Number.isFinite(Number(m.lng)))
+      .sort(
+        (a, b) =>
+          haversineKm(location.latitude, location.longitude, Number(a.lat), Number(a.lng)) -
+          haversineKm(location.latitude, location.longitude, Number(b.lat), Number(b.lng)),
+      )
+      .slice(0, 10);
+  }
+  return [...list].sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0)).slice(0, 10);
 }
 
 // 本地 mock 团购
@@ -206,12 +329,13 @@ interface AdminDeal {
   rulesEn: string | null;
 }
 
-async function getFavorites(): Promise<number[]> {
+async function getFavorites(): Promise<string[]> {
   const raw = await AsyncStorage.getItem(FAV_KEY);
   if (!raw) return [];
   try {
     const arr = JSON.parse(raw);
-    return Array.isArray(arr) ? arr.map(Number) : [];
+    // 兼容早期存下的数字 id（"1".."9"），解析不到的条目直接忽略
+    return Array.isArray(arr) ? arr.map((v) => String(v)).filter((v) => v.length > 0) : [];
   } catch {
     return [];
   }
@@ -252,31 +376,39 @@ export const trpc = {
     home: {
       useQuery: (input: { locale: string; location?: { latitude: number; longitude: number } }) =>
         useQuery<HomeFeed>({
-          queryKey: ["catalog.home", input.locale],
+          queryKey: [
+            "catalog.home",
+            input.locale,
+            input.location?.latitude ?? null,
+            input.location?.longitude ?? null,
+          ],
           queryFn: async () => {
-            // 后台商户 + 本地兜底
-            let backend: LocalMerchant[] = [];
+            // 后台商户优先，后台不可达时用本地 mock
+            await ensureRemoteConfig();
+            let all: LocalMerchant[] = [];
             try {
-              backend = await fetchMerchants("all");
+              all = await fetchMerchants("all");
             } catch {
-              backend = [];
+              all = [];
             }
-            const all = backend.length ? backend : localMerchants;
+            if (!all.length) all = localMerchants;
             const featured = all.filter((m) => m.featured);
-            const list = (featured.length ? featured : all).slice(0, 10).map((m, i) => toSummary(m, i + 1));
+            const list = (featured.length ? featured : all).slice(0, 10).map((m) => toSummary(m, input.location));
             return {
               city: { zh: "霍尔果斯", ru: "Хоргос", en: "Khorgos" },
               featuredMerchants: list,
-              nearbyMerchants: all.slice(0, 10).map((m, i) => toSummary(m, i + 1)),
+              nearbyMerchants: nearbyList(all, input.location).map((m) => toSummary(m, input.location)),
               featuredDeals: LOCAL_DEALS,
             };
           },
           initialData: {
             city: { zh: "霍尔果斯", ru: "Хоргос", en: "Khorgos" },
-            featuredMerchants: LOCAL_SUMMARIES.filter((s) => findLocal(s.id)?.featured).slice(0, 10),
+            featuredMerchants: localMerchants.filter((m) => m.featured).map((m) => toSummary(m)),
             nearbyMerchants: LOCAL_SUMMARIES,
             featuredDeals: LOCAL_DEALS,
           },
+          // initialDataUpdatedAt=0：让占位数据立即视为过期，避免 staleTime 内拿不到后台真实数据
+          initialDataUpdatedAt: 0,
         }),
     },
 
@@ -289,78 +421,35 @@ export const trpc = {
           queryKey: ["catalog.merchants", input],
           enabled: opts?.enabled,
           queryFn: async () => {
-            const kw = input.keyword?.trim() || "";
-            if (kw) {
-              try {
-                const pois = await searchPlaces(kw, "zh", "");
-                return pois.map((p, i) => toSummary(p as unknown as LocalMerchant, i + 1));
-              } catch {
-                // fall through
-              }
+            const kw = (input.keyword ?? "").trim().toLowerCase();
+            const localCat = toLocalCategory(input.category);
+            await ensureRemoteConfig();
+            // 后台优先（fetchMerchants 内部已在后台不可达时回退本地 mock）
+            let list: LocalMerchant[] = [];
+            try {
+              list = await fetchMerchants(localCat ?? "all");
+            } catch {
+              list = [];
             }
-            let list = localMerchants;
-            if (input.category && input.category !== "all") {
-              const localCat = Object.entries(CATEGORY_MAP).find(([, v]) => v === input.category)?.[0];
-              if (localCat) list = list.filter((m) => m.category === localCat);
-            }
-            if (kw) {
-              const q = kw.toLowerCase();
-              list = list.filter((m) =>
-                [m.name.zh, m.name.en, m.name.ru, m.address.zh, m.address.en, m.address.ru]
-                  .join(" ")
-                  .toLowerCase()
-                  .includes(q)
-              );
-            }
-            return list.slice(0, input.limit ?? 20).map((m, i) => toSummary(m, i + 1));
+            if (!list.length) list = localMerchants;
+            if (localCat) list = list.filter((m) => m.category === localCat);
+            if (kw) list = list.filter((m) => matchesKeyword(m, kw));
+            return list.slice(0, input.limit ?? 20).map((m) => toSummary(m));
           },
           initialData: LOCAL_SUMMARIES,
+          // initialDataUpdatedAt=0：占位数据立即过期，搜索/分类页首屏必定去后台拉真实数据
+          initialDataUpdatedAt: 0,
         }),
     },
 
     merchantById: {
-      useQuery: (input: { id: number }, opts?: { enabled?: boolean }) =>
+      useQuery: (input: { id: string }, opts?: { enabled?: boolean }) =>
         useQuery<MerchantDetail | null>({
           queryKey: ["catalog.merchantById", input.id],
           enabled: opts?.enabled,
           queryFn: async () => {
-            const local = findLocal(input.id);
-            if (!local) return null;
-            const summary = toSummary(local, input.id);
-            return {
-              ...summary,
-              description: local.desc,
-              address: local.address.zh,
-              phone: local.phone || null,
-              businessHours: "10:00 - 22:00",
-              latitude: local.lat,
-              longitude: local.lng,
-              menuCategories: [
-                {
-                  id: 1,
-                  name: { zh: "精选", en: "Featured", ru: "Избранное" },
-                  items: [
-                    {
-                      id: 1,
-                      name: local.name,
-                      description: local.desc,
-                      imageUrl: null,
-                      priceCents: 5000,
-                      unit: { zh: "份", en: "unit", ru: "шт." },
-                    },
-                  ],
-                },
-              ],
-              reviews: [
-                {
-                  id: 1,
-                  userDisplayName: "旅行者",
-                  rating: local.rating,
-                  content: local.desc.zh,
-                  createdAt: new Date().toISOString(),
-                },
-              ],
-            };
+            const local = await resolveMerchant(input.id);
+            return local ? toDetail(local) : null;
           },
         }),
     },
@@ -412,7 +501,9 @@ export const trpc = {
             enabled: opts?.enabled,
             queryFn: async () => {
               const ids = await getFavorites();
-              return LOCAL_SUMMARIES.filter((s) => ids.includes(s.id));
+              // 逐个解析：后台优先 → mock 兜底；解析不到的（含过期/旧格式 id）直接忽略
+              const found = await Promise.all(ids.map((id) => resolveMerchant(id).catch(() => null)));
+              return found.filter((m): m is LocalMerchant => m !== null).map((m) => toSummary(m));
             },
             initialData: [],
           }),
@@ -420,11 +511,11 @@ export const trpc = {
       toggle: {
         useMutation: (opts?: { onSuccess?: () => void }) =>
           useMutation({
-            mutationFn: async ({ merchantId }: { merchantId: number }) => {
+            mutationFn: async ({ merchantId }: { merchantId: string }) => {
               const ids = await getFavorites();
               const next = ids.includes(merchantId)
                 ? ids.filter((id) => id !== merchantId)
-                : [...ids, merchantId];
+                : [merchantId, ...ids];
               await AsyncStorage.setItem(FAV_KEY, JSON.stringify(next));
               return { favorited: next.includes(merchantId) };
             },

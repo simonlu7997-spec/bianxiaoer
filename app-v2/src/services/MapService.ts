@@ -34,6 +34,7 @@ const CATEGORY_KEYWORDS: Record<string, string> = {
   beauty: "美容 美发",
   leisure: "娱乐 休闲",
   logistics: "物流",
+  hotel: "酒店 民宿 宾馆",
   all: "",
 };
 
@@ -57,6 +58,7 @@ export const searchPlaces = async (
   city: string = config.DEFAULT_CITY
 ): Promise<Merchant[]> => {
   const kw = String(keyword || "").trim();
+  await ensureRemoteConfig();
   // 1) 后台商户优先：按名称/地址关键词搜索已上架商户
   if (!config.USE_MOCK && config.BACKEND_URL && kw) {
     try {
@@ -126,6 +128,7 @@ const fetchFromBackend = async <T,>(path: string, params: Record<string, string>
 };
 
 export const fetchMerchants = async (categoryId?: string, city?: string): Promise<Merchant[]> => {
+  await ensureRemoteConfig();
   if (!config.USE_MOCK && config.BACKEND_URL) {
     try {
       return await fetchFromBackend<Merchant>("/api/merchants", {
@@ -144,6 +147,7 @@ export const fetchMerchants = async (categoryId?: string, city?: string): Promis
 
 // 按 id 查商户（详情页用；POI 走传入对象）
 export const fetchMerchantById = async (id: string): Promise<Merchant | null> => {
+  await ensureRemoteConfig();
   if (!config.USE_MOCK && config.BACKEND_URL) {
     try {
       const res = await fetch(apiUrl(`/api/merchants/${id}`));
@@ -158,6 +162,7 @@ export const fetchMerchantById = async (id: string): Promise<Merchant | null> =>
 
 // 广告位 — 后台 API（USE_MOCK=false 时），否则本地 mock
 export const fetchAds = async (): Promise<Ad[]> => {
+  await ensureRemoteConfig();
   if (!config.USE_MOCK && config.BACKEND_URL) {
     try {
       const rows = await fetchFromBackend<Ad>("/api/ads");
@@ -193,6 +198,23 @@ export const loadRemoteConfig = async (): Promise<boolean> => {
   }
 };
 
+// 确保后台配置已拉取（并发去重）：
+// 页面/数据层在请求商户前先 await 它，避免启动时 USE_MOCK 仍是 true 而错误地只读本地 mock。
+// 失败不缓存 → 下次调用可重试（后台恢复后能自动切回后台数据）。
+let configLoaded = false;
+let configPromise: Promise<boolean> | null = null;
+export const ensureRemoteConfig = (): Promise<boolean> => {
+  if (configLoaded) return Promise.resolve(true);
+  if (!configPromise) {
+    configPromise = loadRemoteConfig().then((ok) => {
+      if (ok) configLoaded = true;
+      else configPromise = null;
+      return ok;
+    });
+  }
+  return configPromise;
+};
+
 const amapTypeMap: [string, string[]][] = [
   ["food", ["餐饮", "美食", "餐厅", "咖啡", "茶馆", "酒吧"]],
   ["shopping", ["购物", "商场", "超市", "便利店", "市场"]],
@@ -200,6 +222,7 @@ const amapTypeMap: [string, string[]][] = [
   ["beauty", ["美容", "美发", "美甲", "spa"]],
   ["leisure", ["休闲", "娱乐", "ktv", "洗浴", "棋牌"]],
   ["logistics", ["物流", "货运", "快递", "仓储"]],
+  ["hotel", ["酒店", "宾馆", "民宿", "旅馆"]],
 ];
 
 function mapAmapType(typeStr = ""): string {
@@ -227,5 +250,6 @@ export default {
   fetchMerchantById,
   fetchAds,
   loadRemoteConfig,
+  ensureRemoteConfig,
   navLinks,
 };

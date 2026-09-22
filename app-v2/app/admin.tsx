@@ -80,6 +80,7 @@ const categoryLabels: Record<ServiceCategory, string> = {
   entertainment: "休闲娱乐",
   logistics: "跨境物流",
   trade: "国际贸易",
+  hotel: "酒店",
 };
 
 function blankMerchant(): MerchantDraft {

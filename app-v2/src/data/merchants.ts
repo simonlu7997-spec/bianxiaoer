@@ -18,6 +18,9 @@ export interface Merchant {
   lng: number;
   featured: boolean;
   desc: LocalizedText;
+  // 后台字段（mock 数据未使用）：封面图 / 上下架状态
+  image?: string | null;
+  status?: number;
   poi?: boolean;
 }
 

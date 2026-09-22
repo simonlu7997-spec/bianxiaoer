@@ -95,5 +95,14 @@
     "vitest": "^2.1.9"
   },
   "packageManager": "pnpm@9.12.0",
-  "description": "边小二 v2.0.0 — 中亚游客三语口岸生活向导（GitHub 完整版 UI + 本地地图）"
+  "description": "边小二 v2.0.0 — 中亚游客三语口岸生活向导（GitHub 完整版 UI + 本地地图）",
+  "expo": {
+    "autolinking": {
+      "android": {
+        "exclude": [
+          "react-native-maps"
+        ]
+      }
+    }
+  }
 }
