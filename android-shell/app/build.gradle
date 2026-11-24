@@ -1,0 +1,37 @@
+plugins { id 'com.android.application' }
+
+android {
+  namespace 'com.bianxiaoer.app'
+  compileSdk 36
+  // 本机已安装的版本，避免 AGP 触发 SDK 组件下载
+  buildToolsVersion '36.0.0'
+
+  defaultConfig {
+    applicationId 'com.bianxiaoer.app'
+    minSdk 24
+    targetSdk 36
+    versionCode 6
+    versionName '2.1.0'
+  }
+
+  signingConfigs {
+    release {
+      storeFile file('debug.keystore')
+      storePassword 'android'
+      keyAlias 'androiddebugkey'
+      keyPassword 'android'
+    }
+  }
+
+  buildTypes {
+    release {
+      minifyEnabled false
+      signingConfig signingConfigs.release
+    }
+  }
+
+  compileOptions {
+    sourceCompatibility JavaVersion.VERSION_17
+    targetCompatibility JavaVersion.VERSION_17
+  }
+}
