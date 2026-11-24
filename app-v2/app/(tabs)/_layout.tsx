@@ -75,6 +75,8 @@ export default function TabLayout() {
         name="index"
         options={{
           title: t.tabs.home,
+          // 首页是口岸通整站容器，隐藏底部 Tab 让站点全屏呈现。
+          tabBarStyle: { display: "none" },
           tabBarIcon: ({ color }) => <IconSymbol size={26} name="house.fill" color={color} />,
         }}
       />

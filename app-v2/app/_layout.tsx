@@ -6,6 +6,8 @@ import { useEffect, useState } from "react";
 import "react-native-reanimated";
 import "../global.css";
 
+import { SafeAreaProvider } from "react-native-safe-area-context";
+
 import { ThemeProvider as LibThemeProvider } from "@/lib/theme-provider";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { I18nProvider } from "@/lib/i18n";
@@ -36,6 +38,7 @@ function RootNavigator() {
   }, []);
 
   return (
+    <SafeAreaProvider>
     <CartProvider>
       <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
                 <Stack>
@@ -51,6 +54,7 @@ function RootNavigator() {
                 <StatusBar style="light" />
       </ThemeProvider>
     </CartProvider>
+    </SafeAreaProvider>
   );
 }
 
