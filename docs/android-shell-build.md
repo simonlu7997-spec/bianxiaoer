@@ -133,6 +133,35 @@ WebChromeClient   onGeolocationPermissionsShowPrompt
 iOS 侧不需要额外代码：`Info.plist` 已有 `NSLocationWhenInUseUsageDescription`，
 WKWebView 会自行弹出系统定位授权框（实测正常）。
 
+## 8.6 系统栏 insets（2026-11-26 补）
+
+H5 外壳是 `height: 100dvh` 的 flex 布局，底部 Tab 依赖 `env(safe-area-inset-bottom)` 抬高。
+**Android WebView 的 `env(safe-area-inset-*)` 恒为 0**，而 targetSdk 35+ 强制 edge-to-edge，
+于是 `100dvh` 把系统导航栏算进视口：
+
+```text
+首页  底部五个 Tab 被压在系统导航栏后面（不在首屏）
+短页  吃住/小二哥/代搜/出行 首屏下方多出一块空白
+```
+
+修法（壳内解决，不改 H5）：给 WebView 按系统栏 insets 设 padding，使视口 = 可见区域。
+
+```java
+webView.setOnApplyWindowInsetsListener((view, insets) -> {
+  int left = insets.getSystemWindowInsetLeft();
+  int top = insets.getSystemWindowInsetTop();
+  int right = insets.getSystemWindowInsetRight();
+  int bottom = insets.getSystemWindowInsetBottom();
+  // API 28+ 再与 DisplayCutout 的 safeInset 取最大值
+  view.setPadding(left, top, right, bottom);
+  return insets;
+});
+webView.requestApplyInsets();
+```
+
+配合：窗口背景白色、状态栏/导航栏图标设为深色（`APPEARANCE_LIGHT_*_BARS`），
+避免留白区域出现深色底。版本 `2.1.2 / versionCode 8`。
+
 ## 9. 两端共同待补
 
 `<input type="file">` 目前不会弹出相册/相机：
