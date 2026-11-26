@@ -112,6 +112,27 @@ xcodebuild -workspace ios/app.xcworkspace -scheme app -configuration Release \
 xcrun devicectl device install app --device <UDID> /tmp/bxe-dd/Build/Products/Release-iphoneos/app.app
 ```
 
+## 8.5 定位权限（2026-11-26 补）
+
+H5 出行页的「开启定位」走 `navigator.geolocation.getCurrentPosition`。Android WebView
+默认关闭定位，且宿主不处理权限回调时**点击毫无反应**（既不弹系统框也不报错）。
+
+壳里必须同时具备三件事，缺一不可：
+
+```text
+AndroidManifest   ACCESS_FINE_LOCATION / ACCESS_COARSE_LOCATION
+WebSettings       setGeolocationEnabled(true)
+WebChromeClient   onGeolocationPermissionsShowPrompt
+                  → 已有权限：callback.invoke(origin, true, false)
+                  → 无权限：requestPermissions(...)，在 onRequestPermissionsResult 里再 invoke
+```
+
+用户曾拒绝过授权时系统不再弹窗，只能引导到
+「设置 → 应用 → 边小二 → 权限 → 位置」手动开启。
+
+iOS 侧不需要额外代码：`Info.plist` 已有 `NSLocationWhenInUseUsageDescription`，
+WKWebView 会自行弹出系统定位授权框（实测正常）。
+
 ## 9. 两端共同待补
 
 `<input type="file">` 目前不会弹出相册/相机：
